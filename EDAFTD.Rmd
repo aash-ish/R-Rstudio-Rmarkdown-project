@@ -1,0 +1,364 @@
+---
+title: 'Sales Insights from Furniture Store Dataset '
+author: "Aashish Telgote"
+date: "2023-02-10"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+## Introduction 
+
+#### Lauren’s Furniture Store is a store that sells different types of furniture’s. Recently they have decided to use their Furniture store sales data for their companies growth. Business managers of the Store want our data analyst’s team to analyze it’s recently collected limited data to derive insights that can help them make strategic plans for companies growth.  
+
+## Business Problem 
+#### The store owner wants to know which products are in most demand and generate the most revenue and what they can do to increase their sales and revenue. 
+
+## Assumptions 
+* #### The data provided is sufficient to derive insights.
+* #### The information is still current and can be used to derive insights, which Lauren’s business team can further use to make strategic plans.
+* #### No outlier's has a substantial impact on the data being used.
+* #### The company isn’t currently using any of the suggested solutions in the report.
+
+## Research/Guiding Questions
+* #### Which furniture’s are in most demand ?
+* #### Which furniture’s generate the most revenue?
+* #### Do people prefer certain color over others in a particular product?
+* #### Are there any loyal customers?
+
+## Hypothesis 
+* #### People prefer color variation in products.
+* #### There are few customers who buy more than one product from the store.
+* #### Majority of revenue comes from few expensive products.
+
+## PREPARE PHASE
+### DATA COLLECTION :
+#### This is a practice dataset from **Google data analytics professional specialization course**.
+#### To view the dataset, [click here](https://drive.google.com/file/d/1UyQE8d4gZ3oLUDuRnIIJaG2RgwWOIkrY/view?usp=share_link)
+
+### Now, let's install some required R packages to start our work.
+#### We will start with tidyverse package.
+#### Tidyverse is a collection of packages in R with a common design philosophy for data manipulation, exploration and visualization.
+#### Usually, Tidyverse package is all we need for data analysis.
+```{r warning=FALSE}
+install.packages("tidyverse")
+```
+```{r}
+library("tidyverse")
+```
+```{r}
+library("readr")
+```
+### Let's import our dataset.
+
+```{r}
+Store_Transactions <- read.csv("Store_Transactions.csv", header = TRUE, sep = ',')
+```
+### Now, we will install and load "Janitor package". It has functions for cleaning data.
+```{r warning=FALSE}
+install.packages("janitor")
+library("janitor")
+
+```
+### Now, we will install "dplyr package" as will be using some of it's functions.
+```{r warning=FALSE}
+install.packages("dplyr")
+library("dplyr")
+
+```
+
+### Now, lets install "skimr package". It let's us summarize the data and skim through it quickly.
+```{r warning=FALSE}
+install.packages("skimr")
+library("skimr")
+
+```
+### Now, let's see the summary and basic statistics of the dataset
+```{r}
+skim_without_charts(Store_Transactions)
+```
+### Let's see the structure of the dataset and datatype of each column.
+```{r}
+str(Store_Transactions)
+```
+### Now, we will take a glimpse of the dataset
+```{r}
+glimpse(Store_Transactions)
+```
+### Now, if we want we can only check all the column names
+```{r}
+colnames(Store_Transactions)
+```
+### Let's preview the dataset to know how it looks in tabular format.
+```{r}
+head(Store_Transactions)
+```
+## PROCESS PHASE
+### DATA CLEANING :
+
+### In this phase, we will do some data cleaning.
+#### Let's rename the "product" and "purchase size" column to Product_name and Units_purchased respectively for better understanding of underlying data in the column.
+```{r}
+Store_Transactions <- Store_Transactions %>%
+  rename(product_name=product) %>%
+  rename(units_purchased=purchase_size)
+```
+#### To highlight column names more clearly. Let's capitalize column names
+```{r}
+Store_Transactions <- rename_with(Store_Transactions, toupper)
+
+```
+#### Let's preview to see if the changes occured
+```{r}
+head(Store_Transactions)
+```
+#### Let's load another package to make changes related to date
+```{r}
+library("lubridate")
+```
+#### let's see the format type of "date" column
+```{r}
+class(Store_Transactions$DATE)
+```
+
+#### Thus, to be able to perform operations on the date lets'convert **date from char to date**
+```{r warning=FALSE}
+Store_Transactions$DATE <- ymd(Store_Transactions$DATE)
+```
+#### Now, lets see if the change has occured
+```{r}
+class(Store_Transactions$DATE)
+```
+#### Now, we will remove all rows with N.A values in columns. Otherwise, they would cause problem while analysing data.
+#### We will save the results in new table, as Store_Transaction
+```{r}
+Store_Transaction <- Store_Transactions[!is.na(Store_Transactions$PRODUCT_NAME), ]
+```
+#### OR In the code, we can also mention particular rows we want to remove.
+```{r}
+Store_Transaction <- Store_Transactions[-c(28,29),]
+```
+
+#### Let's create another column "NEW_REVENUE" to calculate revenue of each transaction and cross check it with column named "PURCHASE_PRICE"
+```{r}
+Store_Transaction <- Store_Transaction %>% mutate(Store_Transaction, NEW_REVENUE= PRODUCT_PRICE*UNITS_PURCHASED)
+```
+#### Now, we will remove all columns that we don't require for our analysis.
+#### We will also be removing "purchase price" column as we have newly created accurate column named "new_revenue" in place of it
+```{r}
+Store_Transaction <- Store_Transaction %>% select(-DATE,-PRODUCT_CODE,-PURCHASE_PRICE)
+```
+#### Now, let's check again if the changes we made occured or not
+```{r}
+head(Store_Transaction)
+```
+
+## ANALYSIS PHASE
+### DATA ANALYSIS :
+
+### It's time for us to analyse the data and find what insights we can get from it.
+#### Every transformation we will make in orignal dataset to pull out insights, we will be saving those transformations in new tables in order to make visuals from them later.
+
+#### First, we will find out how much revenue each product generated
+```{r}
+# Grouping and summarizing in order to find total Revenue generated from each product
+Products_vs_Revenue <- Store_Transaction %>% group_by(PRODUCT_NAME) %>%
+  summarize(Total_revenue_of_each_product = sum(NEW_REVENUE)) 
+head(Products_vs_Revenue)
+```
+#### Now, we will see how many units of each product were sold.
+```{r}
+# Grouping and summarizing in order to find how many units of each product were sold.
+Products_vs_units <- Store_Transaction %>% group_by(PRODUCT_NAME) %>%
+  summarize(Total_units_sold_of_each_product = sum(UNITS_PURCHASED))
+head(Products_vs_units)
+```
+#### Now, let's see the revenue generated from each customer
+```{r}
+# Grouping and summarizing in order to find total revenue generated from each customer
+Customer_vs_revenue <- Store_Transaction %>% group_by(CUSTOMER_ID) %>%
+  summarize(Total_revenue_by_each_customer = sum(NEW_REVENUE))
+head(Customer_vs_revenue)
+```
+#### Now, we will see number of units bought by each customer.
+```{r}
+# Grouping and summarizing in order to find total units bought by each customer 
+Customer_vs_units_purchased <- Store_Transaction %>% group_by(CUSTOMER_ID) %>%
+  summarize(Total_units_bought_by_each_customer = sum(UNITS_PURCHASED))
+head(Customer_vs_units_purchased)
+```
+
+#### Now, we will analyse revenue from individual products which are available with different colours.
+
+#### First, let's see which colour of product "Fan" made the most revenue
+```{r}
+# Filtering to pull out products named "FAN"
+PRODUCT_FAN <- Store_Transaction %>% filter(PRODUCT_NAME=='fan')
+# Creating a new column by uniting 2 columns.
+PRODUCT_FAN <- unite(PRODUCT_FAN,'PRODUCT_NAME_and_COLOR', PRODUCT_NAME,PRODUCT_COLOR, sep = ' ')
+# Grouping and summarizing in order to find revenue of product generated by each of its colour variations
+PRODUCT_FAN <- PRODUCT_FAN %>% group_by(PRODUCT_NAME_and_COLOR) %>%
+  summarize(Total_revenue_by_each_color = sum(NEW_REVENUE))
+```
+```{r}
+head(PRODUCT_FAN)
+```
+#### Now, let's see which colour of product "Couch" made the most revenue
+
+```{r}
+# Filtering to pull out products named "COUCH"
+PRODUCT_COUCH <- Store_Transaction %>% filter(PRODUCT_NAME=='couch')
+# Creating a new column by uniting 2 columns.
+PRODUCT_COUCH <- unite(PRODUCT_COUCH,'PRODUCT_NAME_and_COLOR', PRODUCT_NAME,PRODUCT_COLOR, sep = ' ')
+# Grouping and summarizing in order to find revenue of product generated by each of its colour variations
+PRODUCT_COUCH <- PRODUCT_COUCH %>% group_by(PRODUCT_NAME_and_COLOR) %>%
+  summarize(Total_revenue_by_each_color = sum(NEW_REVENUE))
+```
+```{r}
+head(PRODUCT_COUCH)
+```
+#### Now, let's see which colour of product "Rug" made the most revenue
+```{r}
+# Filtering to pull out products named "RUG"
+PRODUCT_RUG <- Store_Transaction %>% filter(PRODUCT_NAME=='rug')
+# Creating a new column by uniting 2 columns.
+PRODUCT_RUG <- unite(PRODUCT_RUG,'PRODUCT_NAME_and_COLOR', PRODUCT_NAME,PRODUCT_COLOR, sep = ' ')
+# Grouping and summarizing in order to find revenue of product generated by each of its colour variations
+PRODUCT_RUG <- PRODUCT_RUG %>% group_by(PRODUCT_NAME_and_COLOR) %>%
+  summarize(Total_revenue_by_each_color = sum(NEW_REVENUE))
+```
+```{r}
+head(PRODUCT_RUG)
+```
+#### Now, let's see which colour of product "Desk" made the most revenue
+```{r}
+# Filtering to pull out products named "DESK"
+PRODUCT_DESK <- Store_Transaction %>% filter(PRODUCT_NAME=='desk')
+# Creating a new column by uniting 2 columns.
+PRODUCT_DESK <- unite(PRODUCT_DESK,'PRODUCT_NAME_and_COLOR', PRODUCT_NAME,PRODUCT_COLOR, sep = ' ')
+# Grouping and summarizing in order to find revenue of product generated by each of its colour variations
+PRODUCT_DESK <- PRODUCT_DESK %>% group_by(PRODUCT_NAME_and_COLOR) %>%
+  summarize(Total_revenue_by_each_color = sum(NEW_REVENUE))
+```
+```{r}
+head(PRODUCT_DESK)
+```
+
+## SHARE PHASE
+### DATA VISUALIZATION :
+
+#### In this phase, we will present the insights we found from our analysis by using visualisations.
+
+Note :*I will be sharing the code for how to create visuals in Rstudio. But, because they were difficult to understand for stakeholder's, I will be sharing the visuals that I created using Google sheets. They provide a accurate, detailed understanding of the insights we pulled from data.*
+
+### 1. What is the total revenue generated by each product?
+```{r}
+# ggplot(data = Products_vs_Revenue) + 
+#  geom_bar(mapping =aes(x=Total_revenue_of_each_product, fill=PRODUCT_NAME))
+```
+![Fig.a](/cloud/project/graphs/prr.png)
+
+#### It’s surprising to see that the product “couch” generated the most revenue for our store as compared to other products. The revenue is literally around 9000 $, while we couldn’t even generate minimum 2500 $ for any of the other products. This possibly has multiple reasons such as, we sell couches with the most variety in colors. So, customers prefer to buy couch from our store as there are many varieties available with respect to color. Another reason we made most revenue from “couch” is because it’s also the most expensive product in our furniture shop, each one costing 1000$.
+
+### 2. How many units of each product were sold?
+```{r}
+# ggplot(data = Products_vs_units) +
+#   geom_bar(mapping = aes(x=PRODUCT_NAME, fill=Total_units_sold_of_each_product))
+
+```
+![Fig.b](/cloud/project/graphs/pus.png)
+
+#### It’s clear from the  above  figure that the total units sold of products “FAN, RUG and COUCH” are highest compared to other products. The number of units sold of this products were minimum 8. This states that most customers are in need of FAN, RUG & COUCH than other products.
+
+### 3. From which customer have we made the most revenue?
+```{r}
+# ggplot(data = Customer_vs_revenue) +
+#   geom_bar(mapping = aes(x=CUSTOMER_ID, fill=Total_revenue_by_each_customer))
+```
+![Fig.c](/cloud/project/graphs/crr.png)
+
+#### Looking at this graph and looking back to our earlier findings, we can say that those customers who bought “couches” from our store generated the most revenue for us and this graph indirectly suggests the same.
+
+### 4. How many products did each customer buy?
+```{r}
+# ggplot(data = Customer_vs_units_purchased) +
+#   geom_bar(mapping = aes(x=Total_units_bought_by_each_customer , fill=PRODUCT_NAME))
+```
+
+![Fig.d](/cloud/project/graphs/cpu.png)
+
+#### The customer with ID 8940 purchased the highest number of furniture products from our store. And the customer who bought 2nd highest number of products from our store has customer ID9080.
+
+#### Then there are three customers who bought approximately  3 products from our store and  some other two customers  bought approximately 2 products from our store. Remaining customers have only bought 1 product from our store. 
+
+#### We can conclude that the top 2 customers who bought most products from our store are
+**•	ID8940**
+**•	ID9080**
+
+
+### 5. Which color is most preferred by customers in product named "Fan"?
+```{r}
+# ggplot(data = PRODUCT_FAN) +
+#   geom_bar(mapping = aes(x=Total_revenue_by_each_color, fill=PRODUCT_NAME_and_COLOR))
+```
+![Fig.e](/cloud/project/graphs/fr.png)
+
+#### As we can see, the brass colour of product “FAN” is more preferred by customers and thus has generated revenue of above 75 $ for our Store. While the white & black colour of it generated comparatively less revenue which is under 25$.
+
+#### It’s good to remember that all colour variants of this product are sold at the same price. But, because the ‘brass’ colour variant was sold more. Thus, it generated more revenue for our store.
+
+
+### 6. Which color is most preferred by customers in product named "Couch"?
+```{r}
+# ggplot(data = PRODUCT_COUCH) +
+#   geom_bar(mapping = aes(x=Total_revenue_by_each_color, fill=PRODUCT_NAME_and_COLOR))
+```
+![Fig.f](/cloud/project/graphs/cr.png)
+
+#### As we can see, the Grey colour of product “COUCH” is more preferred by customers and thus has generated revenue of around 3000 $ for our Store. While the white colour of it made comparatively less which is around 2000$.
+
+#### The other remaining 4 variants generated around 1000$ each for our store.
+
+#### It’s good to remember that all colour variants of this product are sold at the same price. But, because the ‘Grey’ and ‘White’ colour variant were sold more. Thus, they generated more revenue for our store.
+
+
+### 7. Which color is most preferred by customers in product named "Rug"?
+```{r}
+# ggplot(data = PRODUCT_RUG) +
+#   geom_bar(mapping = aes(x=Total_revenue_by_each_color, fill=PRODUCT_NAME_and_COLOR))
+```
+![Fig.g](/cloud/project/graphs/rr.png)
+
+#### As we can see, the beige colour of product “RUG” is more preferred by customers and thus has generated revenue of above 500 $ for our Store. While the grey colour of it generated comparatively less revenue which is around 300$.
+
+#### It’s good to remember that all colour variants of this product are sold at the same price. But, because the ‘beige’ colour variant was sold more. Thus, it generated more revenue for our store.
+
+
+### 8.Which color is most preferred by customers in product named "Desk"?
+```{r}
+# ggplot(data = PRODUCT_DESK) +
+#   geom_bar(mapping = aes(x=Total_revenue_by_each_color, fill=PRODUCT_NAME_and_COLOR))
+```
+![Fig.h](/cloud/project/graphs/dr.png)
+
+#### As we can see, the brown colour of product “DESK” is more preferred by customers and thus has generated revenue of above 300 $ for our Store. While the white colour of it generated comparatively less which around 150$.
+
+#### It’s good to remember that all colour variants of this product are sold at the same price. But, because the ‘brown’ colour variant was sold more. Thus, it generated more revenue for our store.
+
+## ACT PHASE
+### SUGGESTIONS :
+
+#### 1.	 FAN, RUG, COUCH are the most in demand product, so we should ensure that there’s sufficient stock of this products in our inventory.
+#### 2.	We have few loyal customers, who generally buy from our store. So, from time to time we should see if they are in need of any furniture and provide them with best offers for being a loyal customer to our shop. This will also encourage other customers to fulfill most of their furniture needs from our store.
+#### 3. We should keep more variants of every single product, as people want to choose from a range of varieties. Also, we should try to keep those furniture products that are generally expensive, as they will generate the most revenue. 
+#### 4.	Currently, product “Couch” is generating the most revenue for us. So, it’s important to ensure that couch sales continue like this by running the business operations for product “couch” without any change for now.
+#### 5.	As seen earlier, products that have different color varieties, certain color of each of this products get purchased more than others. So, we should maintain their stocks in our inventory as they are more preferred color variants.
+#### In short, they are.
+#### •	For “COUCH” preferred colours are grey and white.
+#### •	For “RUG” preferred colour is beige.
+#### •	For “FAN” preferred colour is brass.
+#### •	For “DESK” preferred colour is brown.
+
+
+
